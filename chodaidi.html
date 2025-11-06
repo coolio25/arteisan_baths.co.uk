@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cho Dai Di (Big Two) Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a472a, #2d5a3d);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .game-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+        }
+
+        .game-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 53, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #4a90e2, #357abd);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 144, 226, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-areas: 
+                "ai1 ai2 ai3"
+                "center center center"
+                "player player player";
+            grid-template-rows: 200px 300px 250px;
+            gap: 20px;
+        }
+
+        .player-area {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 15px;
+            position: relative;
+        }
+
+        .player-area.current-turn {
+            border: 3px solid #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .ai1 { grid-area: ai1; }
+        .ai2 { grid-area: ai2; }
+        .ai3 { grid-area: ai3; }
+        .player { grid-area: player; }
+
+        .center-area {
+            grid-area: center;
+            background: rgba(0,0,0,0.4);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-around;
+            position: relative;
+        }
+
+        .player-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .player-name {
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .card-count {
+            background: rgba(255, 215, 0, 0.2);
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+
+        .player-cards {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            flex-wrap: wrap;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .card {
+            width: 45px;
+            height: 65px;
+            background: white;
+            border-radius: 6px;
+            border: 2px solid #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 3px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .card:hover {
+            transform: translateY(-8px) scale(1.1);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            z-index: 10;
+        }
+
+        .card.selected {
+            transform: translateY(-12px) scale(1.05);
+            border-color: #ffd700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+        }
+
+        .card.red {
+            color: #dc2626;
+        }
+
+        .card.black {
+            color: #1f2937;
+        }
+
+        .card-back {
+            background: linear-gradient(45deg, #8b0000, #dc143c);
+            color: #ffd700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .center-pile {
+            min-height: 120px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            border: 2px dashed rgba(255,255,255,0.3);
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 15px;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .game-status {
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            border-left: 4px solid #ffd700;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .last-play-info {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .combo-display {
+            background: rgba(255, 215, 0, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            margin: 10px 0;
+            font-weight: bold;
+            text-align: center;
+            color: #ffd700;
+        }
+
+        .sparkle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #ffd700;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: sparkle 1.5s ease-out forwards;
+        }
+
+        @keyframes sparkle {
+            0% {
+                transform: scale(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1) rotate(360deg) translate(60px, -60px);
+                opacity: 0;
+            }
+        }
+
+        .card-fly {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            animation: flyToCenter 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        .card-smash {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            animation: smashDown 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+
+        @keyframes flyToCenter {
+            0% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.2) rotate(180deg);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(1) rotate(360deg);
+                opacity: 1;
+            }
+        }
+
+        @keyframes smashDown {
+            0% {
+                transform: scale(1) translateY(-100vh) rotate(0deg);
+                opacity: 1;
+                box-shadow: 0 0 20px rgba(255, 69, 0, 0.8);
+                top: -100px;
+                left: 50%;
+            }
+            15% {
+                transform: scale(1.3) translateY(-80vh) rotate(45deg);
+                opacity: 1;
+                box-shadow: 0 0 30px rgba(255, 69, 0, 1);
+            }
+            70% {
+                transform: scale(1.8) translateY(-10vh) rotate(180deg);
+                opacity: 1;
+                box-shadow: 0 0 50px rgba(255, 69, 0, 1), 0 0 100px rgba(255, 165, 0, 0.6);
+            }
+            85% {
+                transform: scale(2.2) translateY(-5vh) rotate(270deg);
+                opacity: 1;
+                box-shadow: 0 0 80px rgba(255, 69, 0, 1), 0 0 150px rgba(255, 165, 0, 0.8);
+            }
+            100% {
+                transform: scale(1) translateY(0vh) rotate(360deg);
+                opacity: 1;
+                box-shadow: 0 0 20px rgba(255, 69, 0, 0.4);
+                position: relative;
+                top: auto;
+                left: auto;
+            }
+        }
+
+        .winner-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            border: 3px solid #ffd700;
+            z-index: 2000;
+            text-align: center;
+            min-width: 350px;
+            animation: popupAppear 0.5s ease-out;
+        }
+
+        @keyframes popupAppear {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 0;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .ai-thinking {
+            display: inline-block;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .fire-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 500;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .fire-overlay.active {
+            opacity: 1;
+        }
+
+        .fire-particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle, #ff4500, #ff6b00, #ffaa00);
+            border-radius: 50%;
+            animation: fireRise 2s infinite ease-out;
+        }
+
+        @keyframes fireRise {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+                background: radial-gradient(circle, #ff4500, #ff6b00);
+            }
+            50% {
+                transform: translateY(-50vh) scale(1.5);
+                opacity: 0.8;
+                background: radial-gradient(circle, #ff6b00, #ffaa00);
+            }
+            100% {
+                transform: translateY(-100vh) scale(0.5);
+                opacity: 0;
+                background: radial-gradient(circle, #ffaa00, #ffdd00);
+            }
+        }
+
+        .last-card-warning {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(45deg, #ff4500, #ff6b00, #ffaa00);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 15px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 1000;
+            animation: warningPulse 1s ease-in-out;
+            box-shadow: 0 0 30px rgba(255, 69, 0, 0.8);
+        }
+
+        @keyframes warningPulse {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 0;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .player-area.last-card {
+            border: 3px solid #ff4500 !important;
+            box-shadow: 0 0 30px rgba(255, 69, 0, 0.8) !important;
+            animation: fireGlow 1.5s infinite alternate;
+        }
+
+        @keyframes fireGlow {
+            0% {
+                box-shadow: 0 0 30px rgba(255, 69, 0, 0.8);
+            }
+            100% {
+                box-shadow: 0 0 50px rgba(255, 69, 0, 1), 0 0 80px rgba(255, 69, 0, 0.6);
+            }
+        }
+
+        .screen-shake {
+            animation: shake 0.6s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10% { transform: translateX(-10px) translateY(-5px); }
+            20% { transform: translateX(10px) translateY(5px); }
+            30% { transform: translateX(-8px) translateY(-3px); }
+            40% { transform: translateX(8px) translateY(3px); }
+            50% { transform: translateX(-6px) translateY(-2px); }
+            60% { transform: translateX(6px) translateY(2px); }
+            70% { transform: translateX(-4px) translateY(-1px); }
+            80% { transform: translateX(4px) translateY(1px); }
+            90% { transform: translateX(-2px); }
+        }
+
+        .impact-flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,69,0,0.3) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0;
+            animation: flash 0.3s ease-out;
+        }
+
+        @keyframes flash {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        @media (max-width: 768px) {
+            .game-board {
+                grid-template-areas: 
+                    "ai1 ai2"
+                    "ai3 center"
+                    "player player";
+                grid-template-rows: 150px 200px 200px;
+            }
+            
+            .card {
+                width: 35px;
+                height: 50px;
+                font-size: 0.6rem;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🃏 Cho Dai Di (Big Two)</h1>
+            <p>First to play all cards wins! 2s and Aces are high. Spades > Hearts > Clubs > Diamonds</p>
+        </div>
+
+        <div class="game-controls">
+            <button class="btn btn-primary" onclick="startNewGame()">New Game</button>
+            <button class="btn btn-secondary" onclick="showRules()">Rules</button>
+        </div>
+
+        <div class="game-status" id="gameStatus">
+            Click "New Game" to start playing Cho Dai Di!
+        </div>
+
+        <!-- Fire Effects Overlay -->
+        <div class="fire-overlay" id="fireOverlay"></div>
+
+        <div class="game-board">
+            <!-- AI Players -->
+            <div class="player-area ai1" id="ai1">
+                <div class="player-info">
+                    <span class="player-name">🤖 AI Wong</span>
+                    <span class="card-count" id="ai1Count">13</span>
+                </div>
+                <div class="player-cards" id="ai1Cards"></div>
+            </div>
+
+            <div class="player-area ai2" id="ai2">
+                <div class="player-info">
+                    <span class="player-name">🤖 AI Chen</span>
+                    <span class="card-count" id="ai2Count">13</span>
+                </div>
+                <div class="player-cards" id="ai2Cards"></div>
+            </div>
+
+            <div class="player-area ai3" id="ai3">
+                <div class="player-info">
+                    <span class="player-name">🤖 AI Li</span>
+                    <span class="card-count" id="ai3Count">13</span>
+                </div>
+                <div class="player-cards" id="ai3Cards"></div>
+            </div>
+
+            <!-- Center Area -->
+            <div class="center-area">
+                <div class="last-play-info" id="lastPlayInfo">
+                    Game will start with player holding 3♦
+                </div>
+                <div class="center-pile" id="centerPile">
+                    <div style="color: #888; font-style: italic;">Cards played will appear here</div>
+                </div>
+                <div class="combo-display" id="comboDisplay" style="display: none;"></div>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="playSelectedCards()" id="playBtn" disabled>Play Cards</button>
+                    <button class="btn btn-secondary" onclick="passTurn()" id="passBtn" disabled>Pass</button>
+                </div>
+            </div>
+
+            <!-- Player Area -->
+            <div class="player-area player" id="player">
+                <div class="player-info">
+                    <span class="player-name">👤 You</span>
+                    <span class="card-count" id="playerCount">13</span>
+                </div>
+                <div class="player-cards" id="playerCards"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let gameState = {
+            players: [
+                { id: 'player', name: 'You', cards: [], isAI: false },
+                { id: 'ai1', name: 'AI Wong', cards: [], isAI: true },
+                { id: 'ai2', name: 'AI Chen', cards: [], isAI: true },
+                { id: 'ai3', name: 'AI Li', cards: [], isAI: true }
+            ],
+            currentPlayer: 0,
+            lastPlay: null,
+            lastPlayer: null,
+            selectedCards: [],
+            gameInProgress: false,
+            passCount: 0
+        };
+
+        // Card definitions for Big Two
+        const suits = ['♦', '♣', '♥', '♠']; // Diamonds lowest, Spades highest
+        const values = ['3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A', '2']; // 2 and A are high
+        const suitColors = { '♠': 'black', '♣': 'black', '♥': 'red', '♦': 'red' };
+        const suitRank = { '♦': 1, '♣': 2, '♥': 3, '♠': 4 };
+
+        function createDeck() {
+            const deck = [];
+            for (let suit of suits) {
+                for (let value of values) {
+                    deck.push({ 
+                        suit, 
+                        value, 
+                        color: suitColors[suit],
+                        rank: values.indexOf(value) * 4 + suitRank[suit] // Unique ranking
+                    });
+                }
+            }
+            return shuffleDeck(deck);
+        }
+
+        function shuffleDeck(deck) {
+            const shuffled = [...deck];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function startNewGame() {
+            const deck = createDeck();
+            
+            // Reset game state
+            gameState.players.forEach(player => player.cards = []);
+            gameState.selectedCards = [];
+            gameState.lastPlay = null;
+            gameState.lastPlayer = null;
+            gameState.passCount = 0;
+            gameState.gameInProgress = true;
+
+            // Deal 13 cards to each player
+            for (let i = 0; i < 52; i++) {
+                const playerIndex = i % 4;
+                gameState.players[playerIndex].cards.push(deck[i]);
+            }
+
+            // Sort each player's cards
+            gameState.players.forEach(player => {
+                player.cards.sort((a, b) => a.rank - b.rank);
+            });
+
+            // Find who has 3 of diamonds (starts the game)
+            gameState.currentPlayer = gameState.players.findIndex(player => 
+                player.cards.some(card => card.value === '3' && card.suit === '♦')
+            );
+
+            renderGame();
+            updateGameStatus(`${gameState.players[gameState.currentPlayer].name} starts (has 3♦)`);
+            
+            if (gameState.players[gameState.currentPlayer].isAI) {
+                setTimeout(aiTurn, 1500);
+            }
+        }
+
+        function renderGame() {
+            // Clear all areas
+            gameState.players.forEach(player => {
+                const container = document.getElementById(player.id + 'Cards');
+                const countEl = document.getElementById(player.id + 'Count');
+                container.innerHTML = '';
+                countEl.textContent = player.cards.length;
+
+                // Add current turn indicator
+                const playerArea = document.getElementById(player.id);
+                if (gameState.players.indexOf(player) === gameState.currentPlayer) {
+                    playerArea.classList.add('current-turn');
+                } else {
+                    playerArea.classList.remove('current-turn');
+                }
+
+                // Add last card fire effects
+                if (player.cards.length === 1) {
+                    playerArea.classList.add('last-card');
+                    if (!document.querySelector('.last-card-warning')) {
+                        showLastCardWarning(player.name);
+                    }
+                    startFireEffects();
+                } else {
+                    playerArea.classList.remove('last-card');
+                }
+
+                // Render cards
+                player.cards.forEach((card, index) => {
+                    const cardEl = createCardElement(card, !player.isAI);
+                    if (player.isAI) {
+                        cardEl.classList.add('card-back');
+                        cardEl.innerHTML = '🂠';
+                    }
+                    container.appendChild(cardEl);
+                });
+            });
+
+            // Check if no one has last card anymore
+            const hasLastCard = gameState.players.some(p => p.cards.length === 1);
+            if (!hasLastCard) {
+                stopFireEffects();
+            }
+
+            // Update buttons
+            const isPlayerTurn = gameState.currentPlayer === 0;
+            document.getElementById('playBtn').disabled = !isPlayerTurn || gameState.selectedCards.length === 0;
+            document.getElementById('passBtn').disabled = !isPlayerTurn || !gameState.lastPlay;
+        }
+
+        function createCardElement(card, clickable = false) {
+            const cardEl = document.createElement('div');
+            cardEl.className = `card ${card.color}`;
+            cardEl.innerHTML = `
+                <div class="card-value">${card.value}</div>
+                <div class="card-suit">${card.suit}</div>
+                <div class="card-value" style="transform: rotate(180deg);">${card.value}</div>
+            `;
+            
+            if (clickable) {
+                cardEl.onclick = () => selectCard(cardEl, card);
+            }
+            
+            cardEl.dataset.card = JSON.stringify(card);
+            return cardEl;
+        }
+
+        function selectCard(cardEl, card) {
+            const isSelected = cardEl.classList.contains('selected');
+            
+            if (isSelected) {
+                cardEl.classList.remove('selected');
+                gameState.selectedCards = gameState.selectedCards.filter(c => c.rank !== card.rank);
+            } else {
+                cardEl.classList.add('selected');
+                gameState.selectedCards.push(card);
+            }
+
+            // Sort selected cards
+            gameState.selectedCards.sort((a, b) => a.rank - b.rank);
+            
+            // Update play button
+            document.getElementById('playBtn').disabled = gameState.selectedCards.length === 0;
+            
+            // Show combo type
+            if (gameState.selectedCards.length > 0) {
+                const combo = getComboType(gameState.selectedCards);
+                const comboEl = document.getElementById('comboDisplay');
+                if (combo.valid) {
+                    comboEl.textContent = combo.name;
+                    comboEl.style.display = 'block';
+                    comboEl.style.background = 'rgba(76, 175, 80, 0.3)';
+                } else {
+                    comboEl.textContent = 'Invalid combination';
+                    comboEl.style.display = 'block';
+                    comboEl.style.background = 'rgba(244, 67, 54, 0.3)';
+                }
+            } else {
+                document.getElementById('comboDisplay').style.display = 'none';
+            }
+        }
+
+        function getComboType(cards) {
+            if (cards.length === 0) return { valid: false };
+            
+            const sortedCards = [...cards].sort((a, b) => a.rank - b.rank);
+            
+            if (cards.length === 1) {
+                return { valid: true, name: 'Single', type: 'single', power: cards[0].rank };
+            }
+            
+            if (cards.length === 2) {
+                if (sortedCards[0].value === sortedCards[1].value) {
+                    return { valid: true, name: 'Pair', type: 'pair', power: sortedCards[1].rank };
+                }
+                return { valid: false };
+            }
+            
+            if (cards.length === 3) {
+                if (sortedCards[0].value === sortedCards[1].value && sortedCards[1].value === sortedCards[2].value) {
+                    return { valid: true, name: 'Triple', type: 'triple', power: sortedCards[2].rank };
+                }
+                return { valid: false };
+            }
+            
+            if (cards.length === 5) {
+                // Check for straight
+                const cardValues = sortedCards.map(c => values.indexOf(c.value));
+                const isStraight = cardValues.every((val, i) => i === 0 || val === cardValues[i-1] + 1);
+                
+                // Check for flush
+                const isFlush = sortedCards.every(c => c.suit === sortedCards[0].suit);
+                
+                if (isStraight && isFlush) {
+                    return { valid: true, name: 'Straight Flush', type: 'straight_flush', power: sortedCards[4].rank };
+                } else if (isFlush) {
+                    return { valid: true, name: 'Flush', type: 'flush', power: sortedCards[4].rank };
+                } else if (isStraight) {
+                    return { valid: true, name: 'Straight', type: 'straight', power: sortedCards[4].rank };
+                }
+                
+                // Check for full house
+                const valueCounts = {};
+                sortedCards.forEach(c => valueCounts[c.value] = (valueCounts[c.value] || 0) + 1);
+                const counts = Object.values(valueCounts).sort((a, b) => b - a);
+                
+                if (counts[0] === 3 && counts[1] === 2) {
+                    return { valid: true, name: 'Full House', type: 'full_house', power: sortedCards[4].rank };
+                }
+                
+                if (counts[0] === 4) {
+                    return { valid: true, name: 'Four of a Kind', type: 'four_kind', power: sortedCards[4].rank };
+                }
+            }
+            
+            return { valid: false };
+        }
+
+        function canPlayCombo(newCombo, lastCombo) {
+            if (!lastCombo) return newCombo.valid;
+            if (!newCombo.valid) return false;
+            if (newCombo.type !== lastCombo.type) return false;
+            return newCombo.power > lastCombo.power;
+        }
+
+        function playSelectedCards() {
+            if (gameState.selectedCards.length === 0) return;
+            
+            const combo = getComboType(gameState.selectedCards);
+            
+            if (!combo.valid) {
+                updateGameStatus('Invalid card combination!');
+                return;
+            }
+            
+            if (!canPlayCombo(combo, gameState.lastPlay)) {
+                updateGameStatus('Cannot beat the last play!');
+                return;
+            }
+
+            // Play the cards
+            playCards(gameState.currentPlayer, gameState.selectedCards, combo);
+        }
+
+        function playCards(playerIndex, cards, combo) {
+            const player = gameState.players[playerIndex];
+            
+            // Remove cards from player's hand
+            cards.forEach(playedCard => {
+                player.cards = player.cards.filter(c => c.rank !== playedCard.rank);
+            });
+            
+            // Add cards to center pile with animation
+            animateCardsToCenter(cards, playerIndex);
+            
+            // Update game state
+            gameState.lastPlay = combo;
+            gameState.lastPlayer = playerIndex;
+            gameState.passCount = 0;
+            gameState.selectedCards = [];
+            
+            // Check for win
+            if (player.cards.length === 0) {
+                setTimeout(() => showWinner(playerIndex), 1000);
+                return;
+            }
+            
+            // Next player
+            gameState.currentPlayer = (gameState.currentPlayer + 1) % 4;
+            
+            setTimeout(() => {
+                renderGame();
+                updateGameStatus(`${player.name} played ${combo.name}. ${gameState.players[gameState.currentPlayer].name}'s turn.`);
+                
+                if (gameState.players[gameState.currentPlayer].isAI) {
+                    setTimeout(aiTurn, 1500);
+                }
+            }, 800);
+        }
+
+        function animateCardsToCenter(cards, fromPlayer) {
+            const centerPile = document.getElementById('centerPile');
+            
+            // Check if any card is above 7 (8, 9, 10, J, Q, K, A, 2)
+            const hasHighCard = cards.some(card => {
+                const cardValue = values.indexOf(card.value);
+                return cardValue >= 5; // 8 and above (index 5+ in values array)
+            });
+            
+            // Clear center pile and add new cards
+            centerPile.innerHTML = '';
+            
+            cards.forEach((card, index) => {
+                setTimeout(() => {
+                    const cardEl = createCardElement(card);
+                    
+                    if (hasHighCard) {
+                        // Create temporary card for smash animation
+                        const tempCard = cardEl.cloneNode(true);
+                        tempCard.classList.add('card-smash');
+                        
+                        // Position the temp card to start from above the center
+                        const centerRect = centerPile.getBoundingClientRect();
+                        tempCard.style.position = 'fixed';
+                        tempCard.style.left = (centerRect.left + centerRect.width / 2 - 22.5) + 'px';
+                        tempCard.style.top = '-100px';
+                        tempCard.style.zIndex = '1000';
+                        
+                        document.body.appendChild(tempCard);
+                        
+                        // Add impact effects when smash animation completes
+                        setTimeout(() => {
+                            createImpactEffects();
+                            createSparkles(tempCard);
+                            // Remove temp card and add real card to center pile
+                            tempCard.remove();
+                            centerPile.appendChild(cardEl);
+                        }, 1200); // Timing matches smash animation
+                    } else {
+                        // For regular cards, add them directly to center pile with fly animation
+                        cardEl.classList.add('card-fly');
+                        centerPile.appendChild(cardEl);
+                        createSparkles(cardEl);
+                    }
+                }, index * 100);
+            });
+            
+            // Update last play info
+            const combo = getComboType(cards);
+            document.getElementById('lastPlayInfo').textContent = 
+                `${gameState.players[fromPlayer].name} played ${combo.name}`;
+        }
+
+        function passTurn() {
+            gameState.passCount++;
+            gameState.currentPlayer = (gameState.currentPlayer + 1) % 4;
+            
+            // If 3 players pass, clear the table
+            if (gameState.passCount >= 3) {
+                gameState.lastPlay = null;
+                gameState.lastPlayer = null;
+                gameState.passCount = 0;
+                document.getElementById('centerPile').innerHTML = '<div style="color: #888; font-style: italic;">Table cleared - any card can be played</div>';
+                document.getElementById('lastPlayInfo').textContent = 'Table cleared - any combination allowed';
+            }
+            
+            renderGame();
+            updateGameStatus(`You passed. ${gameState.players[gameState.currentPlayer].name}'s turn.`);
+            
+            if (gameState.players[gameState.currentPlayer].isAI) {
+                setTimeout(aiTurn, 1500);
+            }
+        }
+
+        function aiTurn() {
+            const aiPlayer = gameState.players[gameState.currentPlayer];
+            updateGameStatus(`${aiPlayer.name} is thinking... 🤔`);
+            
+            setTimeout(() => {
+                // Simple AI logic
+                const playableCards = findAIPlay(aiPlayer.cards, gameState.lastPlay);
+                
+                if (playableCards.length > 0) {
+                    const combo = getComboType(playableCards);
+                    playCards(gameState.currentPlayer, playableCards, combo);
+                } else {
+                    // AI passes
+                    gameState.passCount++;
+                    gameState.currentPlayer = (gameState.currentPlayer + 1) % 4;
+                    
+                    if (gameState.passCount >= 3) {
+                        gameState.lastPlay = null;
+                        gameState.lastPlayer = null;
+                        gameState.passCount = 0;
+                        document.getElementById('centerPile').innerHTML = '<div style="color: #888; font-style: italic;">Table cleared - any card can be played</div>';
+                        document.getElementById('lastPlayInfo').textContent = 'Table cleared - any combination allowed';
+                    }
+                    
+                    renderGame();
+                    updateGameStatus(`${aiPlayer.name} passed. ${gameState.players[gameState.currentPlayer].name}'s turn.`);
+                    
+                    if (gameState.players[gameState.currentPlayer].isAI) {
+                        setTimeout(aiTurn, 1500);
+                    }
+                }
+            }, 2000);
+        }
+
+        function findAIPlay(cards, lastPlay) {
+            // Simple AI: try to play lowest possible cards
+            if (!lastPlay) {
+                // Play single lowest card
+                return [cards[0]];
+            }
+            
+            if (lastPlay.type === 'single') {
+                const playable = cards.filter(c => c.rank > lastPlay.power);
+                return playable.length > 0 ? [playable[0]] : [];
+            }
+            
+            if (lastPlay.type === 'pair') {
+                const pairs = findPairs(cards);
+                const playable = pairs.filter(pair => pair[1].rank > lastPlay.power);
+                return playable.length > 0 ? playable[0] : [];
+            }
+            
+            // For other combinations, AI passes (simplified)
+            return [];
+        }
+
+        function findPairs(cards) {
+            const pairs = [];
+            for (let i = 0; i < cards.length - 1; i++) {
+                if (cards[i].value === cards[i + 1].value) {
+                    pairs.push([cards[i], cards[i + 1]]);
+                    i++; // Skip next card
+                }
+            }
+            return pairs;
+        }
+
+        function createSparkles(element) {
+            const rect = element.getBoundingClientRect();
+            for (let i = 0; i < 6; i++) {
+                setTimeout(() => {
+                    const sparkle = document.createElement('div');
+                    sparkle.className = 'sparkle';
+                    sparkle.style.left = (rect.left + Math.random() * rect.width) + 'px';
+                    sparkle.style.top = (rect.top + Math.random() * rect.height) + 'px';
+                    document.body.appendChild(sparkle);
+                    
+                    setTimeout(() => sparkle.remove(), 1500);
+                }, i * 150);
+            }
+        }
+
+        function showWinner(playerIndex) {
+            const winner = gameState.players[playerIndex];
+            gameState.gameInProgress = false;
+            
+            const popup = document.createElement('div');
+            popup.className = 'winner-popup';
+            popup.innerHTML = `
+                <h2>🎉 Game Over!</h2>
+                <h3>${winner.name} Wins!</h3>
+                <p>${winner.name} played all cards first!</p>
+                <div style="margin: 20px 0;">
+                    ${winner.isAI ? '🤖' : '👤'} ${winner.name} is the Big Two champion!
+                </div>
+                <button class="btn btn-primary" onclick="closeWinnerPopup()">Play Again</button>
+            `;
+            
+            document.body.appendChild(popup);
+            createSparkles(popup);
+        }
+
+        function closeWinnerPopup() {
+            const popup = document.querySelector('.winner-popup');
+            if (popup) popup.remove();
+        }
+
+        function showRules() {
+            const popup = document.createElement('div');
+            popup.className = 'winner-popup';
+            popup.innerHTML = `
+                <h3>🃏 Cho Dai Di Rules</h3>
+                <div style="text-align: left; max-height: 400px; overflow-y: auto;">
+                    <p><strong>Objective:</strong> Be first to play all your cards</p><br>
+                    
+                    <p><strong>Card Rankings:</strong></p>
+                    <p>• Values: 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K, A, 2 (2 is highest)</p>
+                    <p>• Suits: ♦ < ♣ < ♥ < ♠ (Spades highest)</p><br>
+                    
+                    <p><strong>Valid Combinations:</strong></p>
+                    <p>• Single card</p>
+                    <p>• Pair (two same values)</p>
+                    <p>• Triple (three same values)</p>
+                    <p>• Straight (5 consecutive values)</p>
+                    <p>• Flush (5 same suit)</p>
+                    <p>• Full House (triple + pair)</p>
+                    <p>• Four of a Kind</p>
+                    <p>• Straight Flush</p><br>
+                    
+                    <p><strong>How to Play:</strong></p>
+                    <p>• Player with 3♦ starts</p>
+                    <p>• Must play higher combination of same type</p>
+                    <p>• Pass if you can't or don't want to play</p>
+                    <p>• After 3 passes, table clears</p>
+                </div>
+                <button class="btn btn-primary" onclick="closeWinnerPopup()">Got it!</button>
+            `;
+            
+            document.body.appendChild(popup);
+        }
+
+        function updateGameStatus(message) {
+            document.getElementById('gameStatus').innerHTML = message;
+        }
+
+        let fireInterval = null;
+
+        function startFireEffects() {
+            if (fireInterval) return; // Already running
+            
+            const fireOverlay = document.getElementById('fireOverlay');
+            fireOverlay.classList.add('active');
+            
+            fireInterval = setInterval(() => {
+                createFireParticle();
+            }, 100);
+        }
+
+        function stopFireEffects() {
+            if (fireInterval) {
+                clearInterval(fireInterval);
+                fireInterval = null;
+            }
+            
+            const fireOverlay = document.getElementById('fireOverlay');
+            fireOverlay.classList.remove('active');
+            
+            // Clear existing particles
+            setTimeout(() => {
+                fireOverlay.innerHTML = '';
+            }, 500);
+        }
+
+        function createFireParticle() {
+            const fireOverlay = document.getElementById('fireOverlay');
+            const particle = document.createElement('div');
+            particle.className = 'fire-particle';
+            
+            // Random position along bottom of screen
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.bottom = '0px';
+            
+            // Random delay for staggered effect
+            particle.style.animationDelay = Math.random() * 0.5 + 's';
+            
+            fireOverlay.appendChild(particle);
+            
+            // Remove particle after animation
+            setTimeout(() => {
+                if (particle.parentNode) {
+                    particle.parentNode.removeChild(particle);
+                }
+            }, 2500);
+        }
+
+        function showLastCardWarning(playerName) {
+            const warning = document.createElement('div');
+            warning.className = 'last-card-warning';
+            warning.innerHTML = `🔥 ${playerName} has only 1 card left! 🔥`;
+            
+            document.body.appendChild(warning);
+            
+            // Remove warning after 3 seconds
+            setTimeout(() => {
+                if (warning.parentNode) {
+                    warning.parentNode.removeChild(warning);
+                }
+            }, 3000);
+        }
+
+        function createImpactEffects() {
+            // Screen shake
+            const gameContainer = document.querySelector('.game-container');
+            gameContainer.classList.add('screen-shake');
+            setTimeout(() => {
+                gameContainer.classList.remove('screen-shake');
+            }, 600);
+            
+            // Impact flash
+            const flash = document.createElement('div');
+            flash.className = 'impact-flash';
+            document.body.appendChild(flash);
+            
+            setTimeout(() => {
+                if (flash.parentNode) {
+                    flash.parentNode.removeChild(flash);
+                }
+            }, 300);
+            
+            // Extra sparkles for impact
+            for (let i = 0; i < 15; i++) {
+                setTimeout(() => {
+                    const sparkle = document.createElement('div');
+                    sparkle.className = 'sparkle';
+                    sparkle.style.left = (window.innerWidth / 2 + (Math.random() - 0.5) * 200) + 'px';
+                    sparkle.style.top = (window.innerHeight / 2 + (Math.random() - 0.5) * 200) + 'px';
+                    sparkle.style.background = '#ff4500';
+                    sparkle.style.width = '6px';
+                    sparkle.style.height = '6px';
+                    document.body.appendChild(sparkle);
+                    
+                    setTimeout(() => sparkle.remove(), 1500);
+                }, i * 50);
+            }
+        }
+
+        // Initialize
+        updateGameStatus('Welcome to Cho Dai Di! Click "New Game" to start.');
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98dde221b38fedee',t:'MTc2MDM0ODUwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
